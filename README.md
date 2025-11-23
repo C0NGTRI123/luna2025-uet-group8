@@ -90,6 +90,19 @@ To build the Docker container required for submission to Grand-Challenge run:
 This will output a *.tar.gz file, which can be uploaded to Grand-Challenge.
 More information on testing and deploying your container can be found [here](https://grand-challenge.org/documentation/test-and-deploy-your-container/).
 
+## 🐳 Running Docker Compose
+To run the application using Docker compose to easily set up both frontend and backend services, use the following command:
+```bash
+# building docker image
+docker compose build
+
+# start the server
+docker compose up
+```
+
+This command builds and starts the services defined in the `docker-compose.yml` file.
+
+
 ## 🛠️ Extending the Baseline
 While this baseline provides a starting point, participants are encouraged to:
 
