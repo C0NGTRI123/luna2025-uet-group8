@@ -250,7 +250,7 @@ def _show_torch_cuda_info():
 
 
 if __name__ == "__main__":
-    mode = "2D"
-    model_name = "/home/congtri/project/luna25-baseline-public/results/LUNA25-baseline-2D-20250225"
+    mode = "3D-PULSE"
+    model_name = "/home/congtri/project/luna2025-uet-group8/results/UET-G8-LUNA25-baseline"
     raise SystemExit(run(mode= mode,
                          model_name=model_name))

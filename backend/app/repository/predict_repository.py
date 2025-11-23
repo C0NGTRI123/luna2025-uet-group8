@@ -21,10 +21,11 @@ class PredictRepository:
     def _get_default_model_path(self) -> str:
         """Get default model path from configuration or environment."""
         # Default to the 2D baseline model
-        return str(Path(__file__).parent.parent.parent.parent / "results" / "LUNA25-baseline-2D-20250225")
+        return str(Path(__file__).parent.parent.parent.parent / "results" / "UET-G8-LUNA25-baseline")
 
     def get_model_path(self) -> str:
         """Get the current model path."""
+        print(f"Using model path: {self._model_path}")
         return self._model_path
 
     def load_image(self, image_path: str) -> SimpleITK.Image:

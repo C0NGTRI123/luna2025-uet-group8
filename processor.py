@@ -8,6 +8,7 @@ import torch.nn as nn
 from torchvision import models
 from models.model_3d import I3D
 from models.model_2d import ResNet18
+from models.pulse_3d_v2 import Pulse3D_v2
 import os
 import math
 import logging
@@ -37,9 +38,18 @@ class MalignancyProcessor:
             logging.info("Initializing the deep learning system")
 
         if self.mode == "2D":
-            self.model_2d = ResNet18(weights=None).cuda()
+            self.model_2d = ResNet18(weights=None)
         elif self.mode == "3D":
-            self.model_3d = I3D(num_classes=1, pre_trained=False, input_channels=3).cuda()
+            self.model_3d = I3D(num_classes=1, pre_trained=False, input_channels=3)
+        elif self.mode == "3D-PULSE":
+            self.model_3d = Pulse3D_v2(num_classes=1, input_channels=1)
+        
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        if self.mode == "2D":
+             self.model_2d.to(self.device)
+        else:
+             self.model_3d.to(self.device)
 
         self.model_root = "/opt/app/resources/"
 
@@ -93,14 +103,15 @@ class MalignancyProcessor:
             nodules.append(patch)
 
         nodules = np.array(nodules)
-        nodules = torch.from_numpy(nodules).cuda()
+        nodules = torch.from_numpy(nodules).to(self.device)
 
         ckpt = torch.load(
             os.path.join(
                 self.model_root,
                 self.model_name,
                 "best_metric_model.pth",
-            )
+            ),
+            map_location=self.device
         )
         model.load_state_dict(ckpt)
         model.eval()

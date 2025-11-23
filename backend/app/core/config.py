@@ -35,6 +35,10 @@ class Configuration:
             "MODEL_PATH_3D", 
             "results/LUNA25-baseline-3D-20250225"
         )
+        self.MODEL_PATH_3D_PULSE: str = os.environ.get(
+            "MODEL_PATH_3D_PULSE", 
+            "results/UET-G8-LUNA25-baseline"
+        )
         self.DEFAULT_PREDICTION_MODE: str = os.environ.get(
             "DEFAULT_PREDICTION_MODE", "2D"
         )

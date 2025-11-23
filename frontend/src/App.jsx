@@ -5,14 +5,13 @@ function App() {
   const [imageFile, setImageFile] = useState(null)
   const [noduleFile, setNoduleFile] = useState(null)
   const [clinicalFile, setClinicalFile] = useState(null)
-  const [mode, setMode] = useState('2D')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [results, setResults] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!imageFile || !noduleFile) {
       setError('Please upload CT image and nodule locations files')
       return
@@ -28,7 +27,6 @@ function App() {
     if (clinicalFile) {
       formData.append('clinical_information', clinicalFile)
     }
-    formData.append('mode', mode)
 
     try {
       const response = await axios.post('/api/v1/predict/', formData, {
@@ -95,30 +93,6 @@ function App() {
             {clinicalFile && <div className="file-info">✓ {clinicalFile.name}</div>}
           </div>
 
-          <div className="form-group">
-            <label>Prediction Mode</label>
-            <div className="mode-selector">
-              <label>
-                <input
-                  type="radio"
-                  value="2D"
-                  checked={mode === '2D'}
-                  onChange={(e) => setMode(e.target.value)}
-                />
-                2D Model
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  value="3D"
-                  checked={mode === '3D'}
-                  onChange={(e) => setMode(e.target.value)}
-                />
-                3D Model
-              </label>
-            </div>
-          </div>
-
           <button type="submit" className="submit-btn" disabled={loading}>
             {loading ? 'Predicting...' : 'Predict Malignancy'}
           </button>
@@ -141,9 +115,9 @@ function App() {
           <div className="results">
             <h2>Prediction Results</h2>
             <p style={{ marginBottom: '20px', color: '#666' }}>
-              Found {results.points.length} nodule(s) - Mode: {mode}
+              Found {results.points.length} nodule(s)
             </p>
-            
+
             {results.points.map((nodule, index) => (
               <div key={index} className="nodule-card">
                 <div className="nodule-header">
@@ -154,7 +128,7 @@ function App() {
                     {formatProbability(nodule.probability)}
                   </div>
                 </div>
-                
+
                 <div className="nodule-details">
                   <div className="detail-item">
                     <span className="detail-label">X Coordinate:</span>
@@ -171,8 +145,8 @@ function App() {
                   <div className="detail-item">
                     <span className="detail-label">Risk Level:</span>
                     <span>
-                      {nodule.probability >= 0.7 ? 'High' : 
-                       nodule.probability >= 0.4 ? 'Medium' : 'Low'}
+                      {nodule.probability >= 0.7 ? 'High' :
+                        nodule.probability >= 0.4 ? 'Medium' : 'Low'}
                     </span>
                   </div>
                 </div>

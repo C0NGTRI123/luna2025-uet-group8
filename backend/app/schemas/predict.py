@@ -48,3 +48,34 @@ class PredictionResult(BaseModel):
     predictions: List[NodulePrediction]
     model_name: str
     mode: str
+
+
+class LesionPredictionRequest(BaseModel):
+    """Schema for lesion prediction request."""
+    
+    seriesInstanceUID: str = Field(..., description="Series instance UID to map image")
+    patientID: Optional[str] = Field(None, description="Patient ID")
+    studyDate: Optional[str] = Field(None, description="Study date in YYYYMMDD format")
+    lesionID: int = Field(..., description="Lesion ID (1, 2, 3...)")
+    coordX: float = Field(..., description="World Coordinate X (mm)")
+    coordY: float = Field(..., description="World Coordinate Y (mm)")
+    coordZ: float = Field(..., description="World Coordinate Z (mm)")
+    ageAtStudyDate: Optional[int] = Field(None, description="Patient age at study date")
+    gender: Optional[str] = Field(None, description="Patient gender (Male or Female)")
+
+
+class LesionPredictionData(BaseModel):
+    """Schema for lesion prediction data in response."""
+    
+    seriesInstanceUID: str = Field(..., description="Series instance UID")
+    lesionID: int = Field(..., description="Lesion ID")
+    probability: float = Field(..., description="Malignancy probability (0.0 - 1.0)")
+    predictionLabel: int = Field(..., description="Prediction label: 1 (Malignant) or 0 (Benign)")
+    processingTimeMs: int = Field(..., description="Processing time in milliseconds")
+
+
+class LesionPredictionResponse(BaseModel):
+    """Schema for lesion prediction response."""
+    
+    status: str = Field(default="success", description="Response status")
+    data: LesionPredictionData = Field(..., description="Prediction data")
