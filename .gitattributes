@@ -3,3 +3,4 @@ resources/* filter=lfs diff=lfs merge=lfs -text
 *.sh text=lf eol=lf
 *.sh.j2 text=lf eol=lf
 *.pth filter=lfs diff=lfs merge=lfs -text
+results/weights/dt_model.ts filter=lfs diff=lfs merge=lfs -text
