@@ -1,116 +1,192 @@
-# 📦 LUNA25 Baseline Algorithm
-Thank you for participating in the [LUNA25 Challenge](https://luna25.grand-challenge.org/).
+# LUNA25 — UET Group 8
 
-In LUNA25, we want to use artificial intelligence for lung nodule malignancy risk estimation on low-dose chest CT scans. For this, we have prepared two baseline models (2D and 3D model) that can help you get started. 
+AI-powered lung nodule malignancy risk estimation for the [LUNA25 Challenge](https://luna25.grand-challenge.org/). Processes low-dose chest CT scans (`.mha` format) and predicts the malignancy probability of detected nodules.
 
-The development of your algorithms should be performed using your local GPU or a cloud platform (such as AWS or Azure), while algorithm evaluation will be performed exclusively on the [Grand-Challenge](https://grand-challenge.org/) platform.
+This repository contains:
+- **`lung-nodule/`** — installable Python package with all AI logic (detection + classification)
+- **`backend/`** — FastAPI REST API
+- **`frontend/`** — React/Vite web interface
+- **`inference.py`** — Grand-Challenge batch inference entrypoint
+- **`run_pipeline.py`** — end-to-end pipeline (ZIP → DICOM → detection → classification)
 
-## 🗂️ Content
-This baseline algorithm provides a framework for training and testing models. While it includes basic scripts, we encourage you to extend and customize them to develop alternative or improved methods.
+---
 
-Important Files:
-- 🦾 `train.py`: A script for training the baseline algorithm on local data.
-- 🦿 `inference.py`: A script for testing the trained algorithm using a specified configuration.
-- 🧮 `Dockerfile`: A file to build a Docker container for deployment on Grand-Challenge. For help on setting up Docker with GPU support you can check the documentation on [Grand-Challenge](https://grand-challenge.org/documentation/setting-up-wsl-with-gpu-support-for-windows-11/) or [Docker](https://docs.docker.com/engine/install/ubuntu/) for additional information.
+## Web Application (Docker Compose)
 
-## ⚙️ Setting up the Environment
-To set up the required environment for the baseline algorithm:
-1. **Create an environment and esure Python is Installed**: Install Python 3.9 or higher:
-    ```bash
-    conda create -n luna25-baseline python==3.9
-    ```
-2. **Install Dependencies**:
-    - Run the following command to install the dependencies listed in `requirements.txt`:
-    ```bash
-    pip install -r requirements.txt
-    ```
-3. **Verify Installation**:
-    - Test the installation by running:
-    ```bash
-    python --version
-    pip list
-    ```
-    Ensure all required packages are listed and no errors are reported.
+The easiest way to run the full stack:
 
-## 🚀 Performing a Training Run
-1. **Set up training configurations**
-
-Open `experiment_config.py` to edit your training configurations. Key parameters include:
-
-- `self.MODE`: Set this to 2D or 3D depending on the desired baseline model.
-- `self.EXPERIMENT_NAME`: Specify the name of your experiment (e.g. LUNA25-baseline).
-- `self.CSV_DIR_TRAIN`: the path to the training csv file
-- `self.DATADIR`: the path where the images are stored
-
-
-2. **Training the Model**
-
-To train the model using the `train.py` script:
 ```bash
-python train.py
-```
-This script uses the settings from experiment_config.py to initialize and train the model.
-
-## 🧪 Testing the Trained Algorithm
-1. **Configure the inference script**
-
-Open the `inference.py` script and configure:
-- `INPUT_PATH`: Path to the input data (CT, nodule locations and clinical information). Keep as `Path("/input")` for Grand-Challenge.
-- `RESOUCE_PATH`: Path to resources (e.g., pretrained models weights) in the container. Defaults to `/results` directory (see Dockerfile)
-- `OUTPUT_PATH`: Path to store the output in your local directory. Keep as `Path("/output")` for Grand-Challenge.
-- **Inputs for the `run()` function**:
-    - `mode`: Match this to the mode used during training (2D or 3D).
-    - `model_name`: Specify the experiment_name matching the training configuration (corresponding to experiment_name directory that contains the model weights in `/results`).
-
-2. **Updating the Docker Image Tag**
-
-In `do_test_run.sh`, update the Docker image tag as needed:
-```bash
-DOCKER_IMAGE_TAG="luna25-baseline-3d-algorithm-open-development-phase"
+docker compose build      # Build backend + frontend images
+docker compose up         # Start services
+docker compose up -d      # Start detached
 ```
 
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| Swagger UI | http://localhost:8000/docs |
 
-3. **Running the Test Script**
+> Model weight files must exist under `./results/` before starting. Docker Compose mounts this directory into the backend container.
 
-To test the trained model for running inference run: 
+### Running Without Docker
+
+**Backend:**
 ```bash
-./do_test_run.sh
-``` 
-
-This script performs the following:
-- Uses Docker to execute the `inference.py` script.
-- Mounts necessary input and output directories.
-- Adjusts the Docker image tag (if updated) before running.
-
-## 🐳 Building the Docker Image
-To build the Docker container required for submission to Grand-Challenge run:
-```bash
-./do_save.sh
-```
-This will output a *.tar.gz file, which can be uploaded to Grand-Challenge.
-More information on testing and deploying your container can be found [here](https://grand-challenge.org/documentation/test-and-deploy-your-container/).
-
-## 🐳 Running Docker Compose
-To run the application using Docker compose to easily set up both frontend and backend services, use the following command:
-```bash
-# building docker image
-docker compose build
-
-# start the server
-docker compose up
+pip install -r requirements-backend.txt
+pip install -e "lung-nodule[all]"
+cd backend && python main.py
 ```
 
-This command builds and starts the services defined in the `docker-compose.yml` file.
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev   # http://localhost:3000
+```
 
+---
 
-## 🛠️ Extending the Baseline
-While this baseline provides a starting point, participants are encouraged to:
+## Environment Setup (ML Training / Pipeline)
 
-- Implement advanced AI models.
-- Explore alternative data preprocessing and augmentation techniques.
-- perform Ensemble Learning
-- train models using entire or larger CT scan inputs
+```bash
+conda create -n luna25 python=3.9
+conda activate luna25
 
-For questions, refer to the [LUNA25 Challenge Page](https://luna25.grand-challenge.org/).
+# AI + training dependencies
+pip install -r requirements-ai.txt
+pip install -e "lung-nodule[all]"
+```
 
-Good luck!
+---
+
+## ML Training
+
+All training code lives in the `lung-nodule` package.
+
+```bash
+# Train 2D (ResNet18) or 3D (I3D) baseline
+python -m lung_nodule.classification.training.train
+
+# Train the team's Pulse 3D v2 model
+python -m lung_nodule.classification.training.train_pulse_v2
+```
+
+Key training hyperparameters are in `lung-nodule/src/lung_nodule/classification/training/config.py`:
+
+| Parameter | Value |
+|-----------|-------|
+| Patch size | 64 px / 50 mm |
+| Batch size | 32 |
+| Learning rate | 1e-4 |
+| Epochs | 100 |
+| Early stopping | patience=10 |
+| Seed | 2025 |
+
+Trained weights are saved to `results/{experiment_name}/best_metric_model.pth`.
+
+---
+
+## End-to-End Pipeline
+
+Runs the full pipeline from a zipped DICOM study to malignancy predictions:
+
+```bash
+pip install -e "lung-nodule[detection]"
+python run_pipeline.py <path/to/scan.zip> [--device cpu|cuda]
+```
+
+---
+
+## Grand-Challenge Submission
+
+```bash
+./do_build.sh       # Build inference Docker image (linux/amd64)
+./do_test_run.sh    # Test inference locally with Docker + GPU
+./do_save.sh        # Export .tar.gz for upload to Grand-Challenge
+```
+
+The `inference.py` entrypoint reads from `test/input/` and writes predictions to `test/output/lung-nodule-malginancy-likelihoods.json`. It uses the **Pulse 3D v2** model by default (`results/UET-G8-LUNA25-baseline/`).
+
+---
+
+## Architecture
+
+```
+Browser (React/Vite :3000)
+  → proxy /api/* → FastAPI (:8000)
+      → predict_service.py
+      → predict_repository.py
+      → lung_nodule.classification.MalignancyProcessor
+          → Pulse3D_v2 / I3D / ResNet18 (PyTorch)
+```
+
+### Models
+
+| Mode | Model | Description |
+|------|-------|-------------|
+| `2D` | `ResNet18` | 2D ResNet18 baseline |
+| `3D` | `I3D` | Inflated 3D ConvNet baseline |
+| `3D-PULSE` | `Pulse3D_v2` | Team model — ResNet3D-18 + SE attention + 4-layer Transformer (GEGLU, DropPath, LayerScale) |
+
+### Risk Classification
+
+| Probability | Risk Level |
+|-------------|-----------|
+| < 0.4 | Low |
+| 0.4 – 0.7 | Medium |
+| ≥ 0.7 | High |
+
+---
+
+## Repository Structure
+
+```
+luna2025-uet-group8/
+├── lung-nodule/              # Installable AI package
+│   └── src/lung_nodule/
+│       ├── classification/   # MalignancyProcessor, NoduleProcessor, models, training
+│       └── detection/        # MONAI RetinaNet 3D detector
+├── backend/                  # FastAPI application
+│   └── app/
+│       ├── api/              # HTTP routing
+│       ├── service/          # Business logic
+│       ├── repository/       # Model I/O
+│       └── core/             # Config, exceptions
+├── frontend/                 # React + Vite UI
+│   └── src/
+├── results/                  # Model weight directories (not committed)
+├── inference.py              # Grand-Challenge entrypoint
+├── run_pipeline.py           # End-to-end pipeline
+├── docker-compose.yml        # Web app orchestration
+├── Dockerfile                # Grand-Challenge submission image
+├── requirements-ai.txt       # AI/ML dependencies
+├── requirements-backend.txt  # Web backend dependencies
+├── requirements-pipeline.txt # Pipeline dependencies
+└── requirements.txt          # All-in-one convenience file
+```
+
+---
+
+## Configuration
+
+Backend configuration is done via environment variables (see `backend/app/core/config.py`):
+
+| Variable | Default |
+|----------|---------|
+| `MODEL_PATH_2D` | `results/LUNA25-baseline-2D-20250225` |
+| `MODEL_PATH_3D` | `results/LUNA25-baseline-3D-20250225` |
+| `MODEL_PATH_3D_PULSE` | `results/UET-G8-LUNA25-baseline` |
+| `DEFAULT_PREDICTION_MODE` | `2D` |
+| `PORT` | `8000` |
+| `DEBUG` | `true` |
+
+---
+
+## Further Reading
+
+- [`lung-nodule/README.md`](lung-nodule/README.md) — AI package usage, model architectures, training
+- [`backend/README.md`](backend/README.md) — API endpoints, request/response format, inference flow
+- [`frontend/README.md`](frontend/README.md) — UI setup, API integration
+- [LUNA25 Challenge](https://luna25.grand-challenge.org/)
+- [Grand-Challenge Docker docs](https://grand-challenge.org/documentation/test-and-deploy-your-container/)

@@ -10,7 +10,6 @@ services:
       - "8000:8000"
     volumes:
       - ./results:/app/results
-      - ./models:/app/models
     environment:
       - PYTHONUNBUFFERED=1
     networks:

@@ -1,0 +1,9 @@
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.0.0
+torchvision==0.15.0
+numpy==1.22.3
+scipy==1.8.1
+simpleitk==2.2.1
+python-multipart==0.0.20
+fastapi==0.121.3
+uvicorn==0.38.0

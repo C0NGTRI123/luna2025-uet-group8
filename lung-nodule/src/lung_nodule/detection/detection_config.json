@@ -1,0 +1,21 @@
+{
+    "_comment": "Detector hyperparameters for MONAI RetinaNet 3D. Edit values here to tune detection.",
+
+    "score_thresh": 0.02,
+    "score_keep": 0.3,
+    "topk_candidates_per_level": 1000,
+    "nms_thresh": 0.22,
+    "detections_per_img": 300,
+
+    "infer_patch_size": [512, 512, 192],
+    "overlap": 0.25,
+    "sw_batch_size": 1,
+    "mode": "constant",
+
+    "pixdim": [0.703125, 0.703125, 1.25],
+    "a_min": -1024.0,
+    "a_max": 300.0,
+    "b_min": 0.0,
+    "b_max": 1.0,
+    "clip": true
+}

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lung-nodule"
+version = "0.1.0"
+description = "Lung nodule detection and malignancy classification library"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "numpy>=1.22.3",
+    "scipy>=1.8.1",
+    "simpleitk>=2.2.1",
+    "pandas>=1.4.2",
+    "scikit-learn>=1.5.2",
+    "tqdm>=4.67.1",
+]
+
+[project.optional-dependencies]
+detection = [
+    "monai>=1.2.0",
+]
+training = [
+    "matplotlib>=3.5.2",
+    "seaborn>=0.11.2",
+]
+all = [
+    "lung-nodule[detection,training]",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"lung_nodule.detection" = ["detection_config.json"]

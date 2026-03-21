@@ -9,19 +9,22 @@ USER user
 
 WORKDIR /opt/app
 
-# Copy files to the container
-COPY --chown=user:user requirements.txt processor.py dataloader.py experiment_config.py /opt/app/
-COPY --chown=user:user models /opt/app/models
-COPY --chown=user:user results /opt/app/resources
-# COPY --chown=user:user test /opt/app/test
+# Copy the lung-nodule package and requirements
+COPY --chown=user:user lung-nodule /opt/app/lung-nodule
+COPY --chown=user:user requirements-ai.txt /opt/app/
 
-# You can add any Python dependencies to requirements.txt
+# Install dependencies and the lung-nodule package
 RUN python -m pip install \
     --user \
     --no-cache-dir \
     --no-color \
-    --requirement /opt/app/requirements.txt
+    --requirement /opt/app/requirements-ai.txt \
+    /opt/app/lung-nodule[detection]
 
+# Copy weight files (data, not code)
+COPY --chown=user:user results /opt/app/resources
+
+# Copy the thin GC entrypoint
 COPY --chown=user:user inference.py /opt/app/
 
 ENTRYPOINT ["python", "inference.py"]
