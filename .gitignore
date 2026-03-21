@@ -161,6 +161,11 @@ cython_debug/
 
 # Ignore exported/saved images
 *.tar.gz
+*.dcm
+*.mha
+*.nii
+*.nii.gz
+*.zip
 
 # Node.js (frontend)
 frontend/node_modules/
