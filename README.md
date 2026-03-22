@@ -137,6 +137,17 @@ Browser (React/Vite :3000)
 | 0.4 – 0.7 | Medium |
 | ≥ 0.7 | High |
 
+### Evaluation Metrics
+
+The main evaluation metric used during training is **ROC-AUC** on the validation set.
+
+- **Primary model-selection metric:** Validation ROC-AUC (higher is better)
+- **Optimization loss:** Binary Cross-Entropy with Logits (`BCEWithLogitsLoss`)
+- **Learning-rate scheduling signal:** Validation ROC-AUC (`ReduceLROnPlateau`, mode=`max`)
+- **Early stopping:** Based on patience when validation ROC-AUC no longer improves
+
+In `train_pulse_v2.py`, the best checkpoint is saved whenever validation ROC-AUC improves.
+
 ---
 
 ## Repository Structure
