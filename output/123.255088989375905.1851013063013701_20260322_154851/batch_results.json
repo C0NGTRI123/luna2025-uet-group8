@@ -1,0 +1,56 @@
+[
+  {
+    "seriesInstanceUID": "auto_nodule_001",
+    "probability": 0.0003666954580694437,
+    "predictionLabel": 0,
+    "processingTimeMs": 467,
+    "CoordX": -34.27,
+    "CoordY": 44.22,
+    "CoordZ": -49.31
+  },
+  {
+    "seriesInstanceUID": "auto_nodule_002",
+    "probability": 0.004372386261820793,
+    "predictionLabel": 0,
+    "processingTimeMs": 467,
+    "CoordX": -42.81,
+    "CoordY": -16.36,
+    "CoordZ": -47.63
+  },
+  {
+    "seriesInstanceUID": "auto_nodule_003",
+    "probability": 0.0003418196283746511,
+    "predictionLabel": 0,
+    "processingTimeMs": 467,
+    "CoordX": 94.59,
+    "CoordY": -61.93,
+    "CoordZ": -190.32
+  },
+  {
+    "seriesInstanceUID": "auto_nodule_004",
+    "probability": 0.0005899870884604752,
+    "predictionLabel": 0,
+    "processingTimeMs": 467,
+    "CoordX": 2.99,
+    "CoordY": 177.91,
+    "CoordZ": -34.26
+  },
+  {
+    "seriesInstanceUID": "auto_nodule_005",
+    "probability": 0.00048353278543800116,
+    "predictionLabel": 0,
+    "processingTimeMs": 467,
+    "CoordX": -46.06,
+    "CoordY": -77.83,
+    "CoordZ": -179.37
+  },
+  {
+    "seriesInstanceUID": "auto_nodule_006",
+    "probability": 0.5020800232887268,
+    "predictionLabel": 1,
+    "processingTimeMs": 467,
+    "CoordX": 1.53,
+    "CoordY": 167.07,
+    "CoordZ": -155.8
+  }
+]

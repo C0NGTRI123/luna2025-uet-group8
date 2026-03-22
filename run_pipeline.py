@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import zipfile
 from contextlib import nullcontext
 from datetime import datetime
@@ -81,6 +82,29 @@ def find_dicom_leaf_dir(extraction_root: Path) -> Path:
         f"No .dcm/.ima files found anywhere under {extraction_root}. "
         "Verify the .zip contains a valid DICOM series."
     )
+
+
+def find_existing_images(extraction_root: Path) -> "tuple[Path | None, Path | None]":
+    """
+    Return (.mha path, .nii.gz path) if they already exist in the extracted ZIP tree.
+    If the ZIP ships pre-converted images, we can skip DICOM conversion entirely.
+    """
+    mha_files   = sorted(extraction_root.rglob("*.mha"))
+    nifti_files = sorted(extraction_root.rglob("*.nii.gz"))
+    return (mha_files[0] if mha_files else None,
+            nifti_files[0] if nifti_files else None)
+
+
+def derive_missing_format(existing: Path, target: Path, label: str) -> Path:
+    """
+    Read an existing image with SimpleITK and write it in the format implied by
+    the target file extension (.mha or .nii.gz).  Used when a ZIP contains only
+    one of the two required formats.
+    """
+    print(f"    Converting {existing.name} -> {target.name} ({label})")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    SimpleITK.WriteImage(SimpleITK.ReadImage(str(existing)), str(target))
+    return target
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -292,12 +316,45 @@ def run_malignancy_inference(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 7: Save results in Grand-Challenge final test format
+# Step 7 helpers: format conversion + save
 # ─────────────────────────────────────────────────────────────────────────────
 
-def save_results(results: dict, zip_stem: str, output_base_dir: Path) -> Path:
+def to_new_format(results: dict, total_inference_ms: float) -> list:
     """
-    Save to output/{zip_stem}_{timestamp}/lung-nodule-malginancy-likelihoods.json
+    Convert the Grand-Challenge results dict to the flat homework batch format.
+
+    Each nodule produces one entry:
+      seriesInstanceUID  — nodule name (e.g. "auto_nodule_001")
+      probability        — malignancy probability (0.0 – 1.0)
+      predictionLabel    — 1 if probability >= 0.5, else 0
+      processingTimeMs   — per-nodule share of total inference time (int ms)
+      CoordX / CoordY / CoordZ — world-space coordinates in mm (2 d.p.)
+    """
+    points = results.get("points", [])
+    n = len(points)
+    per_nodule_ms = int(round(total_inference_ms / n)) if n > 0 else 0
+    batch = []
+    for pt in points:
+        x, y, z = pt["point"]
+        prob = pt["probability"]
+        batch.append({
+            "seriesInstanceUID": pt["name"],
+            "probability": prob,
+            "predictionLabel": 1 if prob >= 0.5 else 0,
+            "processingTimeMs": per_nodule_ms,
+            "CoordX": round(x, 2),
+            "CoordY": round(y, 2),
+            "CoordZ": round(z, 2),
+        })
+    return batch
+
+
+def save_results(results: dict, zip_stem: str, output_base_dir: Path,
+                 inference_ms: float = 0.0) -> Path:
+    """
+    Save to output/{zip_stem}_{timestamp}/:
+      - lung-nodule-malginancy-likelihoods.json  (Grand-Challenge format, unchanged)
+      - batch_results.json                       (homework flat-list format)
 
     The filename 'lung-nodule-malginancy-likelihoods.json' matches the
     Grand-Challenge convention exactly (including the 'malginancy' typo).
@@ -306,11 +363,19 @@ def save_results(results: dict, zip_stem: str, output_base_dir: Path) -> Path:
     out_dir = output_base_dir / f"{zip_stem}_{timestamp}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # ── Grand-Challenge format (unchanged) ────────────────────────────────────
     output_path = out_dir / "lung-nodule-malginancy-likelihoods.json"
     with open(str(output_path), "w") as f:
         json.dump(results, f, indent=4)
-
     print(f"[7/7] Results saved -> {output_path}")
+
+    # ── Homework / batch format ───────────────────────────────────────────────
+    batch_path = out_dir / "batch_results.json"
+    batch = to_new_format(results, inference_ms)
+    with open(str(batch_path), "w") as f:
+        json.dump(batch, f, indent=2)
+    print(f"      Batch format  -> {batch_path}")
+
     return output_path
 
 
@@ -368,16 +433,43 @@ def main() -> int:
 
     # ── Step 1: Extract ZIP ───────────────────────────────────────────────────
     extraction_root, zip_stem = extract_zip(zip_path, TMP_DIR)
-    dcm_leaf_dir = find_dicom_leaf_dir(extraction_root)
-    print(f"    DICOM leaf dir: {dcm_leaf_dir}")
 
-    # ── Steps 2+3: DICOM → MHA (malignancy) + NIfTI (detection) ─────────────
-    mha_path, nifti_path = convert_dicom_to_outputs(dcm_leaf_dir, TMP_DIR, zip_stem)
+    # ── Steps 2+3: Resolve MHA + NIfTI ───────────────────────────────────────
+    # If the ZIP already ships .mha / .nii.gz files, use them directly to avoid
+    # redundant DICOM conversion and extra disk writes.
+    existing_mha, existing_nifti = find_existing_images(extraction_root)
+
+    if existing_mha and existing_nifti:
+        print(f"[2/7] Using .mha directly  : {existing_mha.name}")
+        print(f"[3/7] Using .nii.gz directly: {existing_nifti.name}")
+        mha_path, nifti_path = existing_mha, existing_nifti
+    elif existing_mha:
+        print(f"[2/7] Using .mha directly  : {existing_mha.name}")
+        nifti_path = derive_missing_format(
+            existing_mha,
+            TMP_DIR / "nifti" / zip_stem / f"{zip_stem}.nii.gz",
+            "for detector",
+        )
+        mha_path = existing_mha
+    elif existing_nifti:
+        print(f"[3/7] Using .nii.gz directly: {existing_nifti.name}")
+        mha_path = derive_missing_format(
+            existing_nifti,
+            TMP_DIR / "mha" / f"{zip_stem}.mha",
+            "for malignancy model",
+        )
+        nifti_path = existing_nifti
+    else:
+        # Fall back to DICOM conversion (original path)
+        dcm_leaf_dir = find_dicom_leaf_dir(extraction_root)
+        print(f"    DICOM leaf dir: {dcm_leaf_dir}")
+        mha_path, nifti_path = convert_dicom_to_outputs(dcm_leaf_dir, TMP_DIR, zip_stem)
 
     # ── Step 4: Detect nodules on NIfTI ──────────────────────────────────────
     detections = run_detection(nifti_path=nifti_path, device=device)
 
     # ── Handle zero detections ────────────────────────────────────────────────
+    inference_ms = 0.0
     if not detections:
         print("WARNING: No nodules detected above score threshold.")
         print("         Saving empty result.")
@@ -392,14 +484,16 @@ def main() -> int:
         nodule_locations = format_nodule_locations(detections)
 
         # ── Step 6: Malignancy inference on MHA ───────────────────────────────
+        t0 = time.time()
         results = run_malignancy_inference(
             mha_path=mha_path,
             nodule_locations=nodule_locations,
             model_name=MALIGNANCY_MODEL_NAME,
         )
+        inference_ms = (time.time() - t0) * 1000
 
     # ── Step 7: Save results ──────────────────────────────────────────────────
-    output_path = save_results(results, zip_stem, OUTPUT_BASE_DIR)
+    output_path = save_results(results, zip_stem, OUTPUT_BASE_DIR, inference_ms=inference_ms)
 
     print("=" * 60)
     print(f"Pipeline complete. Output: {output_path}")
